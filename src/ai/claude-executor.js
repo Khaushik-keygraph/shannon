@@ -174,10 +174,16 @@ async function runClaudePrompt(prompt, sourceDir, allowedTools = 'Read', context
         '--user-data-dir', userDataDir,
       ];
 
-      // Docker: Use system Chromium; Local: Use Playwright's bundled browsers
       if (isDocker) {
         mcpArgs.push('--executable-path', '/usr/bin/chromium-browser');
         mcpArgs.push('--browser', 'chromium');
+        mcpArgs.push(
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--single-process'
+        );
       }
 
       mcpServers[playwrightMcpName] = {
@@ -189,8 +195,11 @@ async function runClaudePrompt(prompt, sourceDir, allowedTools = 'Read', context
         ],
         env: {
           ...process.env,
-          PLAYWRIGHT_HEADLESS: 'true', // Ensure headless mode for security and CI compatibility
-          ...(isDocker && { PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1' }), // Only skip in Docker
+          PLAYWRIGHT_HEADLESS: 'true',
+          ...(isDocker && {
+            PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1',
+            PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: '/usr/bin/chromium-browser'
+          }),
         },
       };
     }
