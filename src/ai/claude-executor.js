@@ -194,7 +194,10 @@ async function runClaudePrompt(prompt, sourceDir, allowedTools = 'Read', context
       mcpServers[playwrightMcpName] = {
         type: 'stdio',
         command: 'npx',
-        args: mcpArgs,
+        args: [
+          '--yes',  // CRITICAL: Auto-confirm npm installation in non-interactive environments (ECS Fargate)
+          ...mcpArgs
+        ],
         env: {
           ...process.env,
           ...(isDocker && {
