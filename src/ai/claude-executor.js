@@ -165,9 +165,6 @@ async function runClaudePrompt(prompt, sourceDir, allowedTools = 'Read', context
     if (playwrightMcpName) {
       const userDataDir = `/tmp/${playwrightMcpName}`;
 
-      // Detect if running in Docker via explicit environment variable
-      const isDocker = process.env.SHANNON_DOCKER === 'true';
-
       // Build args array - conditionally add --executable-path for Docker
       const mcpArgs = [
         '@playwright/mcp@latest',
@@ -175,10 +172,16 @@ async function runClaudePrompt(prompt, sourceDir, allowedTools = 'Read', context
         '--user-data-dir', userDataDir,
       ];
 
-      // Docker: Use system Chromium; Local: Use Playwright's bundled browsers
+      // Docker/Fargate: Use system Chromium with container-compatible flags
       if (isDocker) {
         mcpArgs.push('--executable-path', '/usr/bin/chromium-browser');
         mcpArgs.push('--browser', 'chromium');
+
+        // CRITICAL: Chrome args for ECS Fargate compatibility
+        // Fargate doesn't support linuxParameters.sharedMemorySize
+        mcpArgs.push(
+          '--chrome-args=--disable-dev-shm-usage --no-sandbox --disable-setuid-sandbox --disable-gpu --no-zygote --single-process --disable-accelerated-2d-canvas'
+        );
       }
 
       mcpServers[playwrightMcpName] = {
