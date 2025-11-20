@@ -175,15 +175,7 @@ async function runClaudePrompt(prompt, sourceDir, allowedTools = 'Read', context
       ];
 
       if (isDocker) {
-        mcpArgs.push('--executable-path', '/usr/bin/chromium-browser');
-        mcpArgs.push('--browser', 'chromium');
-        mcpArgs.push(
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu',
-          '--single-process'
-        );
+        mcpArgs.push('--no-sandbox');
       }
 
       mcpServers[playwrightMcpName] = {
