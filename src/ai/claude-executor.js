@@ -165,22 +165,29 @@ async function runClaudePrompt(prompt, sourceDir, allowedTools = 'Read', context
     if (playwrightMcpName) {
       const userDataDir = `/tmp/${playwrightMcpName}`;
 
-      // Build args array - conditionally add --executable-path for Docker
+      // Build args array - conditionally configure for Docker/Fargate
       const mcpArgs = [
         '@playwright/mcp@latest',
         '--isolated',
+        '--headless',
+        '--browser', 'chromium',
         '--user-data-dir', userDataDir,
       ];
 
-      // Docker/Fargate: Use system Chromium with container-compatible flags
+      // Docker/Fargate: Use system Chromium with container-compatible configuration
+      // Reference: https://playwright.dev/docs/docker and @playwright/mcp official docs
       if (isDocker) {
+        // Point to system Chromium (pre-installed in Fargate)
         mcpArgs.push('--executable-path', '/usr/bin/chromium-browser');
-        mcpArgs.push('--browser', 'chromium');
 
-        // CRITICAL: Chrome args for ECS Fargate compatibility
-        // Fargate doesn't support linuxParameters.sharedMemorySize
+        // CRITICAL: ECS Fargate compatibility flags (passed as direct args, not --chrome-args)
+        // These must be passed as separate arguments to @playwright/mcp
         mcpArgs.push(
-          '--chrome-args=--disable-dev-shm-usage --no-sandbox --disable-setuid-sandbox --disable-gpu --no-zygote --single-process --disable-accelerated-2d-canvas'
+          '--no-sandbox',                    // Required in containers - no kernel namespace
+          '--disable-setuid-sandbox',        // Disable setuid sandbox
+          '--disable-dev-shm-usage',         // Use /tmp instead of /dev/shm (Fargate doesn't support shm)
+          '--disable-gpu',                   // No GPU available in containers
+          '--single-process'                 // Run in single process to reduce memory footprint
         );
       }
 
@@ -190,8 +197,10 @@ async function runClaudePrompt(prompt, sourceDir, allowedTools = 'Read', context
         args: mcpArgs,
         env: {
           ...process.env,
-          PLAYWRIGHT_HEADLESS: 'true', // Ensure headless mode for security and CI compatibility
-          ...(isDocker && { PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1' }), // Only skip in Docker
+          ...(isDocker && {
+            PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1',  // Skip download - use system Chromium
+            PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: '/usr/bin/chromium-browser'  // Explicit path
+          }),
         },
       };
     }
