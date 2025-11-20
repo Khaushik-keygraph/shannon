@@ -169,30 +169,23 @@ async function runClaudePrompt(prompt, sourceDir, allowedTools = 'Read', context
       const mcpArgs = [
         '@playwright/mcp@latest',
         '--isolated',
-        '--headless',
-        '--browser', 'chromium',
         '--user-data-dir', userDataDir,
       ];
 
+      // Docker: Use system Chromium; Local: Use Playwright's bundled browsers
       if (isDocker) {
-        mcpArgs.push('--no-sandbox');
+        mcpArgs.push('--executable-path', '/usr/bin/chromium-browser');
+        mcpArgs.push('--browser', 'chromium');
       }
 
       mcpServers[playwrightMcpName] = {
         type: 'stdio',
         command: 'npx',
-        args: [
-          '--yes',  // CRITICAL: Auto-confirm npm installation in non-interactive environments (ECS Fargate)
-          ...mcpArgs
-        ],
+        args: mcpArgs,
         env: {
           ...process.env,
-          PLAYWRIGHT_HEADLESS: 'true',
-          ...(isDocker && {
-            PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1',
-            PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: '/usr/bin/chromium',
-            DEBUG: 'pw:api,pw:browser,pw:protocol',
-          }),
+          PLAYWRIGHT_HEADLESS: 'true', // Ensure headless mode for security and CI compatibility
+          ...(isDocker && { PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1' }), // Only skip in Docker
         },
       };
     }
