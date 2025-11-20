@@ -191,7 +191,6 @@ async function runClaudePrompt(prompt, sourceDir, allowedTools = 'Read', context
           ...(isDocker && {
             PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1',
             PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: '/usr/bin/chromium',
-            DEBUG: 'pw:api,pw:browser,pw:protocol',
           }),
         },
       };
